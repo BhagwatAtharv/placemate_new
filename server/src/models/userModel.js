@@ -23,3 +23,17 @@ export async function createUser({ name, email, passwordHash, role }) {
   );
   return { id: String(result.insertId), name, email, role };
 }
+
+export async function listAllUsers() {
+  const rows = await query(
+    "SELECT id, name, email, role, created_at as createdAt FROM users ORDER BY created_at DESC",
+    [],
+  );
+  return rows.map((r) => ({
+    id: String(r.id),
+    name: r.name,
+    email: r.email,
+    role: r.role,
+    createdAt: r.createdAt,
+  }));
+}

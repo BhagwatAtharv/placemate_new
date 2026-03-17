@@ -17,6 +17,23 @@ export async function listResultsForUser(userId) {
   }));
 }
 
+export async function listAllResults() {
+  const rows = await query(
+    "SELECT id, user_id as userId, test_id as testId, test_title as testTitle, score, total_questions as totalQuestions, completed_at as completedAt FROM test_results ORDER BY completed_at DESC",
+    [],
+  );
+
+  return rows.map((r) => ({
+    id: String(r.id),
+    userId: String(r.userId),
+    testId: String(r.testId),
+    testTitle: r.testTitle,
+    score: Number(r.score),
+    totalQuestions: Number(r.totalQuestions),
+    completedAt: r.completedAt,
+  }));
+}
+
 export async function createResult({ userId, testId, testTitle, score, totalQuestions, answers }) {
   const conn = await pool.getConnection();
   try {

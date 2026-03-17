@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { createResult, listResultsForUser } from "../models/resultModel.js";
+import { createResult, listResultsForUser, listAllResults } from "../models/resultModel.js";
+import { listAllUsers } from "../models/userModel.js";
 
 const submitSchema = z.object({
   testId: z.union([z.string(), z.number()]),
@@ -21,6 +22,19 @@ export async function getMyResults(req, res, next) {
   try {
     const results = await listResultsForUser(req.auth.userId);
     res.json({ results });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getAllResults(req, res, next) {
+  try {
+    if (req.auth.role !== "admin") {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+    const results = await listAllResults();
+    const users = await listAllUsers();
+    res.json({ results, users });
   } catch (err) {
     next(err);
   }

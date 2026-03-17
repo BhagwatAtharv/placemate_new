@@ -20,6 +20,8 @@ export function AppProvider({ children }) {
   const [user, setUser] = useState(null);
   const [tests, setTests] = useState([]);
   const [testResults, setTestResults] = useState([]);
+  const [allTestResults, setAllTestResults] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
   const [studyMaterials, setStudyMaterials] = useState([]);
   const [contests, setContests] = useState([]);
   const [alumniPosts, setAlumniPosts] = useState([]);
@@ -44,18 +46,25 @@ export function AppProvider({ children }) {
     setTestResults(data.results || []);
   };
 
+  const loadAllResults = async (t) => {
+    const data = await apiRequest("/api/results/all", { token: t });
+    setAllTestResults(data.results || []);
+    setAllUsers(data.users || []);
+  };
+
   const loadAlumniPosts = async (t) => {
     const data = await apiRequest("/api/alumni/posts", { token: t });
     setAlumniPosts(data.posts || []);
   };
 
-  const loadAll = async (t) => {
+  const loadAll = async (t, isAdmin = false) => {
     await Promise.all([
       loadTests(t),
       loadMaterials(t),
       loadContests(t),
       loadResults(t),
       loadAlumniPosts(t),
+      ...(isAdmin ? [loadAllResults(t)] : []),
     ]);
   };
 
@@ -71,7 +80,7 @@ export function AppProvider({ children }) {
         const me = await apiRequest("/api/auth/me", { token: t });
         setToken(t);
         setUser(me.user || null);
-        await loadAll(t);
+        await loadAll(t, me.user?.role === "admin");
       } catch {
         localStorage.removeItem(tokenKey);
         setToken("");
@@ -91,7 +100,7 @@ export function AppProvider({ children }) {
       localStorage.setItem(tokenKey, data.token);
       setToken(data.token);
       setUser(data.user);
-      await loadAll(data.token);
+      await loadAll(data.token, data.user.role === "admin");
       return true;
     } catch {
       return false;
@@ -116,6 +125,8 @@ export function AppProvider({ children }) {
     setUser(null);
     setTests([]);
     setTestResults([]);
+    setAllTestResults([]);
+    setAllUsers([]);
     setStudyMaterials([]);
     setContests([]);
     setAlumniPosts([]);
@@ -251,6 +262,8 @@ export function AppProvider({ children }) {
       register,
       tests,
       testResults,
+      allTestResults,
+      allUsers,
       studyMaterials,
       contests,
       alumniPosts,

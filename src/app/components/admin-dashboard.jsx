@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Badge } from "./ui/badge";
 import { Textarea } from "./ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
 import {
   Dialog,
   DialogContent,
@@ -24,6 +25,8 @@ import {
   TableHeader,
   TableRow,
 } from "./ui/table";
+import { ScrollArea } from "./ui/scroll-area";
+import { Avatar, AvatarFallback } from "./ui/avatar";
 import {
   PlusCircle,
   Trash2,
@@ -51,12 +54,16 @@ export function AdminDashboard() {
     contests,
     addContest,
     testResults,
+    allTestResults,
+    allUsers,
   } = useApp();
 
   const [isTestDialogOpen, setIsTestDialogOpen] = useState(false);
   const [isMaterialDialogOpen, setIsMaterialDialogOpen] = useState(false);
   const [isContestDialogOpen, setIsContestDialogOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState(null);
   const [activeSection, setActiveSection] = useState("tests");
+  const [resultsSearch, setResultsSearch] = useState("");
 
   // New Test Form State
   const [newTest, setNewTest] = useState({
@@ -142,7 +149,39 @@ export function AdminDashboard() {
   const totalTests = tests.length;
   const totalMaterials = studyMaterials.length;
   const totalContests = contests.length;
-  const totalAttempts = testResults.length;
+  const studentsWithResults = new Set(allTestResults.map((r) => r.userId)).size;
+
+  const students = allUsers.filter((u) => u.role === "student");
+  const normalizedResultsSearch = resultsSearch.trim().toLowerCase();
+  const visibleTests = normalizedResultsSearch
+    ? tests.filter((t) =>
+        [t.title, t.description, t.company, t.type]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedResultsSearch)
+      )
+    : tests;
+
+  const initialsForName = (name) => {
+    if (!name) return "?";
+    const parts = String(name).trim().split(/\s+/).filter(Boolean);
+    const first = parts[0]?.[0] ?? "?";
+    const second = parts.length > 1 ? parts[parts.length - 1]?.[0] : "";
+    return (first + second).toUpperCase();
+  };
+
+  const percentForResult = (result) => {
+    if (!result?.totalQuestions) return 0;
+    return Math.round((result.score / result.totalQuestions) * 100);
+  };
+
+  const scoreTone = (percent) => {
+    if (percent >= 80) return "border-emerald-200/80 bg-emerald-50 text-emerald-700";
+    if (percent >= 60) return "border-blue-200/80 bg-blue-50 text-blue-700";
+    if (percent >= 40) return "border-amber-200/80 bg-amber-50 text-amber-700";
+    return "border-rose-200/80 bg-rose-50 text-rose-700";
+  };
 
   return (
     <div className="app-shell flex">
@@ -161,6 +200,7 @@ export function AdminDashboard() {
             { id: "tests", label: "Manage Tests", icon: FileText },
             { id: "materials", label: "Study Materials", icon: BookOpen },
             { id: "contests", label: "Contests", icon: Trophy },
+            { id: "results", label: "Student Results", icon: BarChart3 },
           ].map((item) => {
             const Icon = item.icon;
             const active = activeSection === item.id;
@@ -230,6 +270,12 @@ export function AdminDashboard() {
               >
                 Contests
               </button>
+              <button
+                onClick={() => setActiveSection("results")}
+                className={`px-3 py-2 rounded-xl text-sm font-semibold ${activeSection === "results" ? "bg-gradient-to-r from-blue-600 to-violet-600 text-white" : "bg-white border border-slate-200 text-slate-600"}`}
+              >
+                Results
+              </button>
             </div>
           </div>
         </header>
@@ -283,8 +329,8 @@ export function AdminDashboard() {
                   <BarChart3 className="h-6 w-6 text-orange-100" />
                 </div>
                 <div>
-                  <p className="text-sm text-orange-100">Test Attempts</p>
-                  <p className="text-2xl font-bold">{totalAttempts}</p>
+                  <p className="text-sm text-orange-100">Student Results</p>
+                  <p className="text-2xl font-bold">{studentsWithResults}</p>
                 </div>
               </div>
             </CardContent>
@@ -293,10 +339,11 @@ export function AdminDashboard() {
 
         {/* Main Content Tabs */}
         <Tabs value={activeSection} onValueChange={setActiveSection} className="space-y-6 fade-up delay-1">
-          <TabsList className="grid w-full grid-cols-3 lg:w-[420px]">
+          <TabsList className="grid w-full grid-cols-4 lg:w-[500px]">
             <TabsTrigger value="tests">Tests</TabsTrigger>
             <TabsTrigger value="materials">Materials</TabsTrigger>
             <TabsTrigger value="contests">Contests</TabsTrigger>
+            <TabsTrigger value="results">Results</TabsTrigger>
           </TabsList>
 
           {/* Tests Tab */}
@@ -667,6 +714,355 @@ export function AdminDashboard() {
                 </Card>
               ))}
             </div>
+          </TabsContent>
+
+          {/* Student Profile Dialog */}
+          <Dialog open={!!selectedStudent} onOpenChange={() => setSelectedStudent(null)}>
+            <DialogContent className="glass-panel border border-white/60 max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Student Profile</DialogTitle>
+                <DialogDescription>Profile and test history for the selected student.</DialogDescription>
+              </DialogHeader>
+              {selectedStudent && (
+                <div className="space-y-5 pt-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                    <Avatar className="h-12 w-12 ring-2 ring-white/70 shadow-sm">
+                      <AvatarFallback className="bg-gradient-to-br from-blue-600 to-violet-600 text-white font-semibold">
+                        {initialsForName(selectedStudent.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <p className="text-xl font-semibold text-slate-900 truncate">{selectedStudent.name}</p>
+                      <p className="text-sm text-slate-600 truncate">{selectedStudent.email}</p>
+                    </div>
+                    <div className="sm:ml-auto flex items-center gap-2">
+                      <Badge variant="secondary">{selectedStudent.role}</Badge>
+                      <Badge variant="outline">
+                        Joined {new Date(selectedStudent.createdAt).toLocaleDateString()}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  <Card className="shadow-none bg-white/80">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg">Test History</CardTitle>
+                      <CardDescription>Scores for tests attempted by this student.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {allTestResults.filter((r) => r.userId === selectedStudent.id).length > 0 ? (
+                        <div className="rounded-xl border border-slate-200/70 overflow-hidden">
+                          <Table>
+                            <TableHeader>
+                              <TableRow className="bg-slate-50/70">
+                                <TableHead>Test</TableHead>
+                                <TableHead>Score</TableHead>
+                                <TableHead>Completed</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {allTestResults
+                                .filter((r) => r.userId === selectedStudent.id)
+                                .slice()
+                                .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))
+                                .map((result) => {
+                                  const percent = percentForResult(result);
+                                  return (
+                                    <TableRow key={result.id}>
+                                      <TableCell className="font-medium text-slate-900">
+                                        {result.testTitle}
+                                      </TableCell>
+                                      <TableCell>
+                                        <div className="flex items-center gap-2">
+                                          <span className="font-semibold text-slate-900">
+                                            {result.score}/{result.totalQuestions}
+                                          </span>
+                                          <Badge variant="outline" className={scoreTone(percent)}>
+                                            {percent}%
+                                          </Badge>
+                                        </div>
+                                      </TableCell>
+                                      <TableCell className="text-slate-600">
+                                        {new Date(result.completedAt).toLocaleDateString()}
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                })}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      ) : (
+                        <div className="rounded-xl border border-dashed border-slate-300 bg-white/60 p-6 text-center text-sm text-slate-600">
+                          No test results yet.
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+
+          {/* Results Tab */}
+          <TabsContent value="results" className="space-y-6">
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 fade-up">
+              <div className="space-y-1">
+                <h2 className="text-xl font-semibold">Student Results</h2>
+                <p className="text-sm text-slate-600">
+                  Test-wise attempts and scores. Click any student to open their profile.
+                </p>
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <Badge variant="secondary">{students.length} students</Badge>
+                  <Badge variant="secondary">{tests.length} tests</Badge>
+                  <Badge variant="outline">{allTestResults.length} total attempts</Badge>
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                <div className="relative w-full sm:w-80">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    value={resultsSearch}
+                    onChange={(e) => setResultsSearch(e.target.value)}
+                    placeholder="Search tests..."
+                    className="pl-10"
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setResultsSearch("")}
+                  disabled={!resultsSearch.trim()}
+                >
+                  Clear
+                </Button>
+              </div>
+            </div>
+
+            <Card className="glass-panel border border-white/60 fade-up delay-1">
+              <CardHeader>
+                <CardTitle>Test-wise Performance</CardTitle>
+                <CardDescription>
+                  Expand a test to see who attempted it, who is pending, and individual scores.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {visibleTests.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-slate-300 bg-white/60 p-10 text-center">
+                    <p className="text-sm font-semibold text-slate-900">No tests match your search.</p>
+                    <p className="text-sm text-slate-600">Try a different keyword.</p>
+                  </div>
+                ) : (
+                  <Accordion type="multiple" className="w-full">
+                    {visibleTests.map((test) => {
+                      const testResultsForTest = allTestResults
+                        .filter((r) => r.testId === test.id)
+                        .slice()
+                        .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
+
+                      const takenIds = new Set(testResultsForTest.map((r) => r.userId));
+                      const studentsNotTaken = students
+                        .filter((u) => !takenIds.has(u.id))
+                        .slice()
+                        .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+
+                      const averagePercent =
+                        testResultsForTest.length > 0
+                          ? Math.round(
+                              testResultsForTest.reduce((sum, r) => sum + percentForResult(r), 0) /
+                                testResultsForTest.length
+                            )
+                          : 0;
+
+                      return (
+                        <AccordionItem key={test.id} value={String(test.id)} className="border-slate-200/70">
+                          <AccordionTrigger className="hover:no-underline">
+                            <div className="flex w-full items-start justify-between gap-4">
+                              <div className="min-w-0">
+                                <p className="font-semibold text-slate-950 truncate">{test.title}</p>
+                                <p className="text-xs text-slate-600 md:max-w-[44rem] truncate">
+                                  {test.description || "No description provided."}
+                                </p>
+                                <div className="flex flex-wrap items-center gap-2 pt-2">
+                                  {test.company ? <Badge variant="secondary">{test.company}</Badge> : null}
+                                  {test.type ? <Badge variant="outline">{test.type}</Badge> : null}
+                                  {test.duration ? <Badge variant="outline">{test.duration} min</Badge> : null}
+                                </div>
+                              </div>
+                              <div className="flex shrink-0 flex-col items-end gap-2">
+                                <div className="flex flex-wrap items-center justify-end gap-2">
+                                  <Badge variant="outline" className="border-slate-200 bg-white/70 text-slate-700">
+                                    {testResultsForTest.length} attempted
+                                  </Badge>
+                                  <Badge
+                                    variant="outline"
+                                    className="border-slate-200 bg-white/70 text-slate-700"
+                                  >
+                                    {studentsNotTaken.length} pending
+                                  </Badge>
+                                  <Badge variant="outline" className={scoreTone(averagePercent)}>
+                                    Avg {averagePercent}%
+                                  </Badge>
+                                </div>
+                                <p className="text-xs text-slate-500">
+                                  {testResultsForTest.length > 0 ? "Latest attempt shown first" : "No attempts yet"}
+                                </p>
+                              </div>
+                            </div>
+                          </AccordionTrigger>
+
+                          <AccordionContent className="pt-2">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                              <Card className="shadow-none bg-white/80">
+                                <CardHeader className="pb-3">
+                                  <CardTitle className="text-lg flex items-center gap-2">
+                                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+                                      <Users className="h-4 w-4" />
+                                    </span>
+                                    Attempted ({testResultsForTest.length})
+                                  </CardTitle>
+                                  <CardDescription>Students who submitted this test.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                  {testResultsForTest.length > 0 ? (
+                                    <div className="rounded-xl border border-slate-200/70 overflow-hidden bg-white/70">
+                                      <ScrollArea className="h-[340px]">
+                                        <Table>
+                                          <TableHeader>
+                                            <TableRow className="bg-slate-50/70">
+                                              <TableHead>Student</TableHead>
+                                              <TableHead>Score</TableHead>
+                                              <TableHead>Completed</TableHead>
+                                            </TableRow>
+                                          </TableHeader>
+                                          <TableBody>
+                                            {testResultsForTest.map((result) => {
+                                              const student = allUsers.find((u) => u.id === result.userId);
+                                              const percent = percentForResult(result);
+                                              return (
+                                                <TableRow key={result.id}>
+                                                  <TableCell>
+                                                    <div className="flex items-center gap-3">
+                                                      <Avatar className="h-9 w-9">
+                                                        <AvatarFallback className="bg-slate-100 text-slate-700 font-semibold text-xs">
+                                                          {initialsForName(student?.name)}
+                                                        </AvatarFallback>
+                                                      </Avatar>
+                                                      <div className="min-w-0">
+                                                        <Button
+                                                          variant="link"
+                                                          size="sm"
+                                                          onClick={() => setSelectedStudent(student)}
+                                                          className="h-auto p-0 font-semibold text-slate-900"
+                                                        >
+                                                          {student?.name || "Unknown"}
+                                                        </Button>
+                                                        <p className="text-xs text-slate-600 truncate">
+                                                          {student?.email || "—"}
+                                                        </p>
+                                                      </div>
+                                                    </div>
+                                                  </TableCell>
+                                                  <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                      <span className="font-semibold text-slate-900">
+                                                        {result.score}/{result.totalQuestions}
+                                                      </span>
+                                                      <Badge variant="outline" className={scoreTone(percent)}>
+                                                        {percent}%
+                                                      </Badge>
+                                                    </div>
+                                                  </TableCell>
+                                                  <TableCell className="text-slate-600">
+                                                    {new Date(result.completedAt).toLocaleDateString()}
+                                                  </TableCell>
+                                                </TableRow>
+                                              );
+                                            })}
+                                          </TableBody>
+                                        </Table>
+                                      </ScrollArea>
+                                    </div>
+                                  ) : (
+                                    <div className="rounded-xl border border-dashed border-slate-300 bg-white/60 p-6 text-center text-sm text-slate-600">
+                                      No students have taken this test yet.
+                                    </div>
+                                  )}
+                                </CardContent>
+                              </Card>
+
+                              <Card className="shadow-none bg-white/80">
+                                <CardHeader className="pb-3">
+                                  <CardTitle className="text-lg flex items-center gap-2">
+                                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-rose-50 text-rose-700">
+                                      <Users className="h-4 w-4" />
+                                    </span>
+                                    Pending ({studentsNotTaken.length})
+                                  </CardTitle>
+                                  <CardDescription>Students who have not attempted this test yet.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                  {studentsNotTaken.length > 0 ? (
+                                    <div className="rounded-xl border border-slate-200/70 overflow-hidden bg-white/70">
+                                      <ScrollArea className="h-[340px]">
+                                        <Table>
+                                          <TableHeader>
+                                            <TableRow className="bg-slate-50/70">
+                                              <TableHead>Student</TableHead>
+                                              <TableHead>Status</TableHead>
+                                            </TableRow>
+                                          </TableHeader>
+                                          <TableBody>
+                                            {studentsNotTaken.map((student) => (
+                                              <TableRow key={student.id}>
+                                                <TableCell>
+                                                  <div className="flex items-center gap-3">
+                                                    <Avatar className="h-9 w-9">
+                                                      <AvatarFallback className="bg-slate-100 text-slate-700 font-semibold text-xs">
+                                                        {initialsForName(student.name)}
+                                                      </AvatarFallback>
+                                                    </Avatar>
+                                                    <div className="min-w-0">
+                                                      <Button
+                                                        variant="link"
+                                                        size="sm"
+                                                        onClick={() => setSelectedStudent(student)}
+                                                        className="h-auto p-0 font-semibold text-slate-900"
+                                                      >
+                                                        {student.name}
+                                                      </Button>
+                                                      <p className="text-xs text-slate-600 truncate">{student.email}</p>
+                                                    </div>
+                                                  </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                  <Badge
+                                                    variant="outline"
+                                                    className="border-rose-200/80 bg-rose-50 text-rose-700"
+                                                  >
+                                                    Not Taken
+                                                  </Badge>
+                                                </TableCell>
+                                              </TableRow>
+                                            ))}
+                                          </TableBody>
+                                        </Table>
+                                      </ScrollArea>
+                                    </div>
+                                  ) : (
+                                    <div className="rounded-xl border border-dashed border-slate-300 bg-white/60 p-6 text-center text-sm text-slate-600">
+                                      All students have taken this test.
+                                    </div>
+                                  )}
+                                </CardContent>
+                              </Card>
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      );
+                    })}
+                  </Accordion>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
         </main>
