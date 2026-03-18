@@ -57,12 +57,12 @@ const DialogContent = React.forwardRef(({ className, children, ...props }, ref) 
   if (!context.open) return null;
 
   return (
-    <div className="fixed inset-0 z-50">
+    <div className="fixed inset-0 z-50 overflow-y-auto">
       <div
         className="fixed inset-0 bg-black/50 backdrop-blur-sm"
         onClick={() => context.onOpenChange(false)}
       />
-      <div className="fixed inset-0 flex items-center justify-center p-4">
+      <div className="min-h-full flex items-start sm:items-center justify-center p-4 py-8">
         <div
           ref={ref}
           className={cn(

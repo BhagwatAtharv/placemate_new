@@ -1,10 +1,26 @@
 import { z } from "zod";
 import { addComment, createPost, likePost, listPosts } from "../models/alumniModel.js";
 
+const optionalInt = (min, max) =>
+  z.preprocess(
+    (value) => (value === "" || value == null ? undefined : value),
+    z.coerce.number().int().min(min).max(max),
+  ).optional();
+
+const optionalDifficulty = z.preprocess(
+  (value) => (value === "" || value == null ? undefined : value),
+  z.enum(["Easy", "Medium", "Hard"]),
+).optional();
+
 const createPostSchema = z.object({
   title: z.string().min(1),
   content: z.string().min(1),
   company: z.string().optional(),
+  testDurationMins: optionalInt(1, 600),
+  aptitudeQuestions: optionalInt(0, 500),
+  aptitudeDifficulty: optionalDifficulty,
+  codingQuestions: optionalInt(0, 200),
+  codingDifficulty: optionalDifficulty,
 });
 
 const commentSchema = z.object({
@@ -29,6 +45,11 @@ export async function postPost(req, res, next) {
       authorCompany: body.company,
       title: body.title,
       content: body.content,
+      testDurationMins: body.testDurationMins,
+      aptitudeQuestions: body.aptitudeQuestions,
+      aptitudeDifficulty: body.aptitudeDifficulty,
+      codingQuestions: body.codingQuestions,
+      codingDifficulty: body.codingDifficulty,
     });
     res.status(201).json({ id });
   } catch (err) {

@@ -62,7 +62,7 @@ export function StudentDashboard() {
       { id: "dashboard", label: "Test Portal", icon: LayoutDashboard },
       { id: "reports", label: "My Reports", icon: BarChart3 },
       { id: "materials", label: "Study Material", icon: FileText },
-      { id: "alumni", label: "Alumni Guidance", icon: MessageSquare },
+      { id: "alumni", label: "Student Feedback", icon: MessageSquare },
       { id: "chatbot", label: "AI Assistant", icon: Bot },
     ],
     [],

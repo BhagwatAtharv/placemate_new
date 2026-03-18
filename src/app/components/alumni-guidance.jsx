@@ -13,18 +13,36 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "./ui/dialog";
-import { Heart, MessageCircle, Send, PlusCircle, Building2, ChevronDown, ChevronUp } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Heart, MessageCircle, Send, PlusCircle, Building2, ChevronDown, ChevronUp, Clock, Brain, Code } from "lucide-react";
 
 export function AlumniGuidance() {
   const { user, alumniPosts, addAlumniPost, likePost, addComment } = useApp();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [newPost, setNewPost] = useState({ title: "", content: "", company: "" });
+  const [newPost, setNewPost] = useState({
+    title: "",
+    content: "",
+    company: "",
+    testDurationMins: "",
+    aptitudeQuestions: "",
+    aptitudeDifficulty: "Medium",
+    codingQuestions: "",
+    codingDifficulty: "Medium",
+  });
+  const [postError, setPostError] = useState("");
   const [commentInputs, setCommentInputs] = useState({});
   const [expandedPosts, setExpandedPosts] = useState(new Set());
   const [likedPosts, setLikedPosts] = useState(new Set());
 
+  const toOptionalNumber = (value) => {
+    if (value === "" || value == null) return undefined;
+    const num = Number(value);
+    return Number.isFinite(num) ? num : undefined;
+  };
+
   const handleAddPost = async () => {
     if (!newPost.title || !newPost.content) return;
+    setPostError("");
     try {
       await addAlumniPost({
         authorId: user?.id || "",
@@ -32,10 +50,25 @@ export function AlumniGuidance() {
         authorCompany: newPost.company || "Not Specified",
         title: newPost.title,
         content: newPost.content,
+        testDurationMins: toOptionalNumber(newPost.testDurationMins),
+        aptitudeQuestions: toOptionalNumber(newPost.aptitudeQuestions),
+        aptitudeDifficulty: newPost.aptitudeDifficulty || undefined,
+        codingQuestions: toOptionalNumber(newPost.codingQuestions),
+        codingDifficulty: newPost.codingDifficulty || undefined,
       });
-      setNewPost({ title: "", content: "", company: "" });
+      setNewPost({
+        title: "",
+        content: "",
+        company: "",
+        testDurationMins: "",
+        aptitudeQuestions: "",
+        aptitudeDifficulty: "Medium",
+        codingQuestions: "",
+        codingDifficulty: "Medium",
+      });
       setIsDialogOpen(false);
     } catch {
+      setPostError("Unable to post right now. Please try again.");
     }
   };
 
@@ -85,48 +118,149 @@ export function AlumniGuidance() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="section-title bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
-            Alumni Guidance
+            Student Feedback
           </h1>
-          <p className="section-subtitle">Learn from the experiences of placed alumni</p>
+          <p className="section-subtitle">Learn from the experiences of Placed Student</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog
+          open={isDialogOpen}
+          onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (open) setPostError("");
+          }}
+        >
           <DialogTrigger asChild>
             <Button className="flex items-center gap-2">
               <PlusCircle className="h-4 w-4" />
               Share Experience
             </Button>
           </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Share Your Experience</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Title</label>
-                <Input
-                  value={newPost.title}
-                  onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
-                  placeholder="e.g., My Google Interview Experience"
-                />
+          <DialogContent className="glass-panel border border-white/70 max-w-2xl p-0 overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="px-6 pt-6 pb-4 shrink-0">
+              <DialogHeader>
+                <DialogTitle className="pr-10">Share Your Experience</DialogTitle>
+              </DialogHeader>
+            </div>
+
+            <div className="px-6 pb-6 overflow-y-auto flex-1">
+              <div className="space-y-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-sm font-medium">Title</label>
+                    <Input
+                      value={newPost.title}
+                      onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
+                      placeholder="e.g., My Google Online Assessment Experience"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Company</label>
+                    <Input
+                      value={newPost.company}
+                      onChange={(e) => setNewPost({ ...newPost, company: e.target.value })}
+                      placeholder="e.g., Google, Microsoft, TCS"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Test Duration (mins)</label>
+                    <div className="relative">
+                      <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                      <Input
+                        type="number"
+                        min={1}
+                        max={600}
+                        value={newPost.testDurationMins}
+                        onChange={(e) => setNewPost({ ...newPost, testDurationMins: e.target.value })}
+                        placeholder="e.g., 90"
+                        className="pl-9"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Card className="bg-white/70 border border-white/70">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Test Snapshot (Optional)</CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium inline-flex items-center gap-2">
+                        <Brain className="h-4 w-4 text-blue-600" /> Aptitude Questions
+                      </label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={500}
+                        value={newPost.aptitudeQuestions}
+                        onChange={(e) => setNewPost({ ...newPost, aptitudeQuestions: e.target.value })}
+                        placeholder="e.g., 30"
+                      />
+                      <div className="space-y-1.5">
+                        <label className="text-xs text-slate-500">Aptitude Difficulty</label>
+                        <Select
+                          value={newPost.aptitudeDifficulty}
+                          onValueChange={(value) => setNewPost({ ...newPost, aptitudeDifficulty: value })}
+                        >
+                          <SelectTrigger className="rounded-xl border-slate-300/80 bg-white/90">
+                            <SelectValue placeholder="Select difficulty" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Easy">Easy</SelectItem>
+                            <SelectItem value="Medium">Medium</SelectItem>
+                            <SelectItem value="Hard">Hard</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium inline-flex items-center gap-2">
+                        <Code className="h-4 w-4 text-violet-600" /> Coding Questions
+                      </label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={200}
+                        value={newPost.codingQuestions}
+                        onChange={(e) => setNewPost({ ...newPost, codingQuestions: e.target.value })}
+                        placeholder="e.g., 2"
+                      />
+                      <div className="space-y-1.5">
+                        <label className="text-xs text-slate-500">Coding Difficulty</label>
+                        <Select
+                          value={newPost.codingDifficulty}
+                          onValueChange={(value) => setNewPost({ ...newPost, codingDifficulty: value })}
+                        >
+                          <SelectTrigger className="rounded-xl border-slate-300/80 bg-white/90">
+                            <SelectValue placeholder="Select difficulty" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Easy">Easy</SelectItem>
+                            <SelectItem value="Medium">Medium</SelectItem>
+                            <SelectItem value="Hard">Hard</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Your Experience</label>
+                  <Textarea
+                    value={newPost.content}
+                    onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
+                    placeholder="Share your experience, preparation tips, what to focus on, and common mistakes..."
+                    rows={6}
+                    className="bg-white/70 border-slate-200"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Company</label>
-                <Input
-                  value={newPost.company}
-                  onChange={(e) => setNewPost({ ...newPost, company: e.target.value })}
-                  placeholder="e.g., Google, Microsoft, TCS"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Your Experience</label>
-                <Textarea
-                  value={newPost.content}
-                  onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
-                  placeholder="Share your interview experience, tips, and advice..."
-                  rows={6}
-                />
-              </div>
-              <Button onClick={handleAddPost} className="w-full">
+            </div>
+
+            <div className="px-6 py-4 border-t border-white/70 bg-white/80 backdrop-blur shrink-0">
+              {postError && <p className="mb-3 text-sm text-rose-700">{postError}</p>}
+              <Button onClick={handleAddPost} className="w-full" disabled={!newPost.title || !newPost.content}>
                 Post Experience
               </Button>
             </div>
@@ -178,6 +312,47 @@ export function AlumniGuidance() {
                   <CardTitle className="text-lg mt-3 text-gray-800">{post.title}</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0">
+                  {(post.testDurationMins != null ||
+                    post.aptitudeQuestions != null ||
+                    post.codingQuestions != null ||
+                    post.aptitudeDifficulty ||
+                    post.codingDifficulty) && (
+                    <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-700">
+                        {post.testDurationMins != null && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1 border border-slate-200">
+                            <Clock className="h-3.5 w-3.5 text-slate-500" />
+                            <span className="font-semibold tabular-nums">{post.testDurationMins}</span>
+                            <span className="text-slate-500">mins</span>
+                          </span>
+                        )}
+                        {post.aptitudeQuestions != null && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1 border border-slate-200">
+                            <Brain className="h-3.5 w-3.5 text-blue-600" />
+                            <span className="font-semibold tabular-nums">{post.aptitudeQuestions}</span>
+                            <span className="text-slate-500">aptitude</span>
+                            {post.aptitudeDifficulty && (
+                              <span className="ml-1 rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700 border border-blue-100">
+                                {post.aptitudeDifficulty}
+                              </span>
+                            )}
+                          </span>
+                        )}
+                        {post.codingQuestions != null && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1 border border-slate-200">
+                            <Code className="h-3.5 w-3.5 text-violet-600" />
+                            <span className="font-semibold tabular-nums">{post.codingQuestions}</span>
+                            <span className="text-slate-500">coding</span>
+                            {post.codingDifficulty && (
+                              <span className="ml-1 rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-semibold text-violet-700 border border-violet-100">
+                                {post.codingDifficulty}
+                              </span>
+                            )}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                   <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{post.content}</p>
                   
                   {/* Actions */}

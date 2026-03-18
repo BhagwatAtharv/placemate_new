@@ -232,6 +232,11 @@ export function AppProvider({ children }) {
         title: post.title,
         content: post.content,
         company: post.authorCompany,
+        testDurationMins: post.testDurationMins,
+        aptitudeQuestions: post.aptitudeQuestions,
+        aptitudeDifficulty: post.aptitudeDifficulty,
+        codingQuestions: post.codingQuestions,
+        codingDifficulty: post.codingDifficulty,
       },
     });
     await loadAlumniPosts(token);
