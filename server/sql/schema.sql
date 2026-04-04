@@ -89,7 +89,10 @@ CREATE TABLE IF NOT EXISTS test_results (
   CONSTRAINT fk_test_results_test_id FOREIGN KEY (test_id) REFERENCES tests (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
 CREATE TABLE IF NOT EXISTS test_result_answers (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   result_id BIGINT UNSIGNED NOT NULL,
@@ -113,7 +116,10 @@ CREATE TABLE IF NOT EXISTS alumni_posts (
   test_duration_mins INT UNSIGNED NULL,
   aptitude_questions INT UNSIGNED NULL,
   aptitude_difficulty VARCHAR(20) NULL,
+<<<<<<< HEAD
   technical_mcq INT UNSIGNED NULL,
+=======
+>>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
   coding_questions INT UNSIGNED NULL,
   coding_difficulty VARCHAR(20) NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

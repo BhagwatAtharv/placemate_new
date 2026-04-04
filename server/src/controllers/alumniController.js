@@ -19,7 +19,10 @@ const createPostSchema = z.object({
   testDurationMins: optionalInt(1, 600),
   aptitudeQuestions: optionalInt(0, 500),
   aptitudeDifficulty: optionalDifficulty,
+<<<<<<< HEAD
   technicalMcq: optionalInt(0, 500),
+=======
+>>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
   codingQuestions: optionalInt(0, 200),
   codingDifficulty: optionalDifficulty,
 });
@@ -49,7 +52,10 @@ export async function postPost(req, res, next) {
       testDurationMins: body.testDurationMins,
       aptitudeQuestions: body.aptitudeQuestions,
       aptitudeDifficulty: body.aptitudeDifficulty,
+<<<<<<< HEAD
       technicalMcq: body.technicalMcq,
+=======
+>>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
       codingQuestions: body.codingQuestions,
       codingDifficulty: body.codingDifficulty,
     });

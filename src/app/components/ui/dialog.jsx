@@ -59,14 +59,22 @@ const DialogContent = React.forwardRef(({ className, children, ...props }, ref) 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div
+<<<<<<< HEAD
         className="fixed inset-0 bg-slate-900/28"
+=======
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+>>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
         onClick={() => context.onOpenChange(false)}
       />
       <div className="min-h-full flex items-start sm:items-center justify-center p-4 py-8">
         <div
           ref={ref}
           className={cn(
+<<<<<<< HEAD
             "relative w-full max-w-lg max-h-[90vh] overflow-auto rounded-[24px] border border-slate-200 bg-white p-6 shadow-[0_28px_70px_-40px_rgba(15,23,42,0.35)]",
+=======
+            "relative bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-auto p-6",
+>>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
             className
           )}
           onClick={(e) => e.stopPropagation()}
@@ -74,7 +82,11 @@ const DialogContent = React.forwardRef(({ className, children, ...props }, ref) 
         >
           <button
             onClick={() => context.onOpenChange(false)}
+<<<<<<< HEAD
             className="absolute right-4 top-4 rounded-full border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+=======
+            className="absolute right-4 top-4 rounded-sm opacity-70 hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+>>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
           >
             <X className="h-4 w-4" />
           </button>

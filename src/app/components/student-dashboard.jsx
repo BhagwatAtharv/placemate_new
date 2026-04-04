@@ -2,7 +2,10 @@ import React, { Suspense, lazy, useMemo, useState } from "react";
 import { useApp } from "../context/AppContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
+<<<<<<< HEAD
 import { Input } from "./ui/input";
+=======
+>>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Badge } from "./ui/badge";
 import { Progress } from "./ui/progress";
@@ -24,8 +27,11 @@ import {
   LayoutDashboard,
   FileText,
   Sparkles,
+<<<<<<< HEAD
   Menu,
   X,
+=======
+>>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
 } from "lucide-react";
 import { TestInterface } from "./test-interface";
 
@@ -51,12 +57,16 @@ export function StudentDashboard() {
   const { user, logout, tests, testResults, contests, joinContest } = useApp();
   const [activeView, setActiveView] = useState("dashboard");
   const [selectedTestId, setSelectedTestId] = useState(null);
+<<<<<<< HEAD
   const [searchQuery, setSearchQuery] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+=======
+>>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
 
   const userResults = testResults.filter((r) => r.userId === user?.id);
   const completedTestIds = userResults.map((r) => r.testId);
   const availableTests = tests.filter((t) => !completedTestIds.includes(t.id));
+<<<<<<< HEAD
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
   const filteredAvailableTests = normalizedSearchQuery
     ? availableTests.filter((test) =>
@@ -85,6 +95,8 @@ export function StudentDashboard() {
           .includes(normalizedSearchQuery),
       )
     : contests;
+=======
+>>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
 
   const totalScore = userResults.reduce((sum, r) => sum + r.score, 0);
   const totalQuestions = userResults.reduce((sum, r) => sum + r.totalQuestions, 0);
@@ -111,6 +123,7 @@ export function StudentDashboard() {
     setActiveView("dashboard");
   };
 
+<<<<<<< HEAD
   const handleNavSelect = (viewId) => {
     setActiveView(viewId);
   };
@@ -124,12 +137,15 @@ export function StudentDashboard() {
       ? "Search tests or contests..."
       : "Search...";
 
+=======
+>>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
   if (activeView === "test" && selectedTestId) {
     return <TestInterface testId={selectedTestId} onComplete={handleTestComplete} />;
   }
 
   return (
     <div className="app-shell flex">
+<<<<<<< HEAD
       {isSidebarOpen ? (
         <button
           type="button"
@@ -159,6 +175,10 @@ export function StudentDashboard() {
         </div>
 
         <div className="hidden lg:flex items-center gap-3 mb-8">
+=======
+      <aside className="hidden lg:flex w-72 border-r border-slate-200/80 bg-white/70 backdrop-blur-xl p-6 flex-col sticky top-0 h-screen">
+        <div className="flex items-center gap-3 mb-8">
+>>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
           <div className="h-11 w-11 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 text-white flex items-center justify-center">
             <Sparkles className="h-5 w-5" />
           </div>
@@ -179,7 +199,11 @@ export function StudentDashboard() {
                     ? "bg-gradient-to-r from-blue-600 to-violet-600 text-white shadow-[0_14px_26px_-16px_rgba(45,68,195,0.95)]"
                     : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                 }`}
+<<<<<<< HEAD
                 onClick={() => handleNavSelect(item.id)}
+=======
+                onClick={() => setActiveView(item.id)}
+>>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
               >
                 <Icon className="h-4 w-4" />
                 {item.label}
@@ -188,6 +212,7 @@ export function StudentDashboard() {
           })}
         </nav>
         <div className="mt-auto">
+<<<<<<< HEAD
           <Button
             variant="outline"
             className="w-full"
@@ -196,11 +221,15 @@ export function StudentDashboard() {
               logout();
             }}
           >
+=======
+          <Button variant="outline" className="w-full" onClick={logout}>
+>>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
             <LogOut className="h-4 w-4 mr-2" /> Logout
           </Button>
         </div>
       </aside>
 
+<<<<<<< HEAD
       <div className={`flex-1 min-w-0 transition-all duration-300 ${isSidebarOpen ? "lg:ml-72" : ""}`}>
         <header className="glass-panel sticky top-0 z-20 border-b border-white/60">
           <div className="px-4 md:px-8 py-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -218,15 +247,29 @@ export function StudentDashboard() {
                 <h1 className="section-title">Welcome back, {user?.name}</h1>
                 <p className="section-subtitle">Ready to continue your placement preparation?</p>
               </div>
+=======
+      <div className="flex-1 min-w-0">
+        <header className="glass-panel sticky top-0 z-20 border-b border-white/60">
+          <div className="px-4 md:px-8 py-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="fade-up">
+              <h1 className="section-title">Welcome back, {user?.name}</h1>
+              <p className="section-subtitle">Ready to continue your placement preparation?</p>
+>>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
             </div>
             <div className="flex items-center gap-3">
               <div className="relative hidden md:block">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+<<<<<<< HEAD
                 <Input
                   aria-label="Search"
                   placeholder={searchPlaceholder}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+=======
+                <input
+                  aria-label="Search"
+                  placeholder="Search..."
+>>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
                   className="h-11 w-80 rounded-2xl border border-slate-300/70 bg-white/90 pl-10 pr-4 text-sm text-slate-700 shadow-[0_10px_20px_-18px_rgba(15,23,42,0.8)]"
                 />
               </div>
@@ -245,7 +288,11 @@ export function StudentDashboard() {
                 return (
                   <button
                     key={item.id}
+<<<<<<< HEAD
                     onClick={() => handleNavSelect(item.id)}
+=======
+                    onClick={() => setActiveView(item.id)}
+>>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
                     className={`px-3 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 ${
                       active
                         ? "bg-gradient-to-r from-blue-600 to-violet-600 text-white"
@@ -320,6 +367,7 @@ export function StudentDashboard() {
 
                 <TabsContent value="tests" className="space-y-4">
                   <h2 className="text-xl font-semibold">Available Tests</h2>
+<<<<<<< HEAD
                   {filteredAvailableTests.length === 0 ? (
                     <Card>
                       <CardContent className="p-8 text-center text-slate-500">
@@ -329,11 +377,22 @@ export function StudentDashboard() {
                             ? "No available tests match your search."
                             : "You've completed all available tests! Check back later for more."}
                         </p>
+=======
+                  {availableTests.length === 0 ? (
+                    <Card>
+                      <CardContent className="p-8 text-center text-slate-500">
+                        <CheckCircle2 className="h-12 w-12 mx-auto mb-4 text-green-500" />
+                        <p>You've completed all available tests! Check back later for more.</p>
+>>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
                       </CardContent>
                     </Card>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+<<<<<<< HEAD
                       {filteredAvailableTests.map((test) => (
+=======
+                      {availableTests.map((test) => (
+>>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
                         <Card key={test.id} className="hover-rise">
                           <CardHeader>
                             <div className="flex justify-between items-start">
@@ -374,6 +433,7 @@ export function StudentDashboard() {
 
                 <TabsContent value="completed" className="space-y-4">
                   <h2 className="text-xl font-semibold">Completed Tests</h2>
+<<<<<<< HEAD
                   {filteredCompletedResults.length === 0 ? (
                     <Card>
                       <CardContent className="p-8 text-center text-slate-500">
@@ -383,11 +443,22 @@ export function StudentDashboard() {
                             ? "No completed tests match your search."
                             : "No tests completed yet. Start a test to see your results here!"}
                         </p>
+=======
+                  {userResults.length === 0 ? (
+                    <Card>
+                      <CardContent className="p-8 text-center text-slate-500">
+                        <Brain className="h-12 w-12 mx-auto mb-4 text-slate-400" />
+                        <p>No tests completed yet. Start a test to see your results here!</p>
+>>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
                       </CardContent>
                     </Card>
                   ) : (
                     <div className="space-y-4">
+<<<<<<< HEAD
                       {filteredCompletedResults.map((result) => {
+=======
+                      {userResults.map((result) => {
+>>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
                         const percentage = Math.round((result.score / result.totalQuestions) * 100);
                         return (
                           <Card key={result.id} className="hover-rise">
@@ -417,16 +488,28 @@ export function StudentDashboard() {
 
                 <TabsContent value="contests" className="space-y-4">
                   <h2 className="text-xl font-semibold">Active Contests</h2>
+<<<<<<< HEAD
                   {filteredContests.length === 0 ? (
                     <Card>
                       <CardContent className="p-8 text-center text-slate-500">
                         <Trophy className="h-12 w-12 mx-auto mb-4 text-slate-400" />
                         <p>{normalizedSearchQuery ? "No contests match your search." : "No active contests at the moment."}</p>
+=======
+                  {contests.length === 0 ? (
+                    <Card>
+                      <CardContent className="p-8 text-center text-slate-500">
+                        <Trophy className="h-12 w-12 mx-auto mb-4 text-slate-400" />
+                        <p>No active contests at the moment.</p>
+>>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
                       </CardContent>
                     </Card>
                   ) : (
                     <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+<<<<<<< HEAD
                       {filteredContests.map((contest) => {
+=======
+                      {contests.map((contest) => {
+>>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
                         const isJoined = contest.participants.includes(user?.id || "");
                         const isActive =
                           new Date() >= new Date(contest.startDate) && new Date() <= new Date(contest.endDate);
@@ -485,8 +568,13 @@ export function StudentDashboard() {
           {activeView !== "dashboard" && (
             <Suspense fallback={<SectionLoader />}>
               {activeView === "reports" && <VisualReports />}
+<<<<<<< HEAD
               {activeView === "materials" && <StudyMaterials searchQuery={searchQuery} />}
               {activeView === "alumni" && <AlumniGuidance searchQuery={searchQuery} />}
+=======
+              {activeView === "materials" && <StudyMaterials />}
+              {activeView === "alumni" && <AlumniGuidance />}
+>>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
               {activeView === "chatbot" && <AIChatbot />}
             </Suspense>
           )}

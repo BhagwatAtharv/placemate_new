@@ -148,9 +148,12 @@ export function AppProvider({ children }) {
     });
 
     await loadResults(token);
+<<<<<<< HEAD
     if (user?.role === "admin") {
       await loadAllResults(token);
     }
+=======
+>>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
   };
 
   const addTest = async (test) => {
@@ -238,7 +241,10 @@ export function AppProvider({ children }) {
         testDurationMins: post.testDurationMins,
         aptitudeQuestions: post.aptitudeQuestions,
         aptitudeDifficulty: post.aptitudeDifficulty,
+<<<<<<< HEAD
         technicalMcq: post.technicalMcq,
+=======
+>>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
         codingQuestions: post.codingQuestions,
         codingDifficulty: post.codingDifficulty,
       },
