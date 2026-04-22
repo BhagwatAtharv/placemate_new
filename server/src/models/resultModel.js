@@ -2,14 +2,10 @@ import { pool, query } from "../db/pool.js";
 
 export async function listResultsForUser(userId) {
   const rows = await query(
-<<<<<<< HEAD
     `SELECT r.id, r.user_id as userId, r.test_id as testId, r.test_title as testTitle, r.score, r.total_questions as totalQuestions, r.completed_at as completedAt
      FROM test_results r
      WHERE r.user_id = ?
      ORDER BY r.completed_at DESC`,
-=======
-    "SELECT id, user_id as userId, test_id as testId, test_title as testTitle, score, total_questions as totalQuestions, completed_at as completedAt FROM test_results WHERE user_id = ? ORDER BY completed_at DESC",
->>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
     [userId],
   );
 
@@ -26,13 +22,9 @@ export async function listResultsForUser(userId) {
 
 export async function listAllResults() {
   const rows = await query(
-<<<<<<< HEAD
     `SELECT r.id, r.user_id as userId, r.test_id as testId, r.test_title as testTitle, r.score, r.total_questions as totalQuestions, r.completed_at as completedAt
      FROM test_results r
      ORDER BY r.completed_at DESC`,
-=======
-    "SELECT id, user_id as userId, test_id as testId, test_title as testTitle, score, total_questions as totalQuestions, completed_at as completedAt FROM test_results ORDER BY completed_at DESC",
->>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
     [],
   );
 

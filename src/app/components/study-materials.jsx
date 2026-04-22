@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import React, { useMemo, useState } from "react";
 import { useApp } from "../context/AppContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
@@ -13,24 +12,6 @@ export function StudyMaterials({ searchQuery = "" }) {
 
   // Get unique companies
   const companies = useMemo(() => ["all", ...new Set(studyMaterials.map((m) => m.company))], [studyMaterials]);
-=======
-import React, { useState } from "react";
-import { useApp } from "../context/AppContext";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Badge } from "./ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { FileText, Video, BookOpen, Search, ExternalLink, Building2 } from "lucide-react";
-
-export function StudyMaterials() {
-  const { studyMaterials } = useApp();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCompany, setSelectedCompany] = useState("all");
-
-  // Get unique companies
-  const companies = ["all", ...new Set(studyMaterials.map((m) => m.company))];
->>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
 
   // Filter materials
   const filteredMaterials = studyMaterials.filter((m) => {
@@ -74,18 +55,6 @@ export function StudyMaterials() {
           <h1 className="section-title">Study Materials</h1>
           <p className="section-subtitle">Company-specific resources to ace your interviews</p>
         </div>
-<<<<<<< HEAD
-=======
-        <div className="relative w-full md:w-64">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <Input
-            placeholder="Search materials..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
->>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
       </div>
 
       {/* Company Filter Tabs */}
@@ -105,11 +74,7 @@ export function StudyMaterials() {
           <CardContent className="p-12 text-center">
             <BookOpen className="h-16 w-16 mx-auto mb-4 text-gray-400" />
             <h2 className="text-xl font-semibold mb-2">No Materials Found</h2>
-<<<<<<< HEAD
             <p className="text-gray-600">Try adjusting the top search bar or company filter.</p>
-=======
-            <p className="text-gray-600">Try adjusting your search or filter criteria.</p>
->>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
           </CardContent>
         </Card>
       ) : (

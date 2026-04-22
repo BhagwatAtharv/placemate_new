@@ -14,11 +14,7 @@ const AlertDialog = ({ open, onOpenChange, children }) => {
   return (
     <div className="fixed inset-0 z-50">
       <div
-<<<<<<< HEAD
         className="fixed inset-0 bg-slate-900/28"
-=======
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm"
->>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
         onClick={() => onOpenChange?.(false)}
       />
       <div className="fixed inset-0 flex items-center justify-center p-4">
@@ -32,11 +28,7 @@ const AlertDialogContent = React.forwardRef(({ className, children, ...props }, 
   <div
     ref={ref}
     className={cn(
-<<<<<<< HEAD
       "relative w-full max-w-md rounded-[24px] border border-slate-200 bg-white p-6 shadow-[0_28px_70px_-40px_rgba(15,23,42,0.35)]",
-=======
-      "relative bg-white rounded-lg shadow-xl max-w-md w-full p-6",
->>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
       className
     )}
     {...props}

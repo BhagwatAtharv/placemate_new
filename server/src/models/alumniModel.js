@@ -43,11 +43,7 @@ export async function listPosts() {
   let posts;
   try {
     posts = await query(
-<<<<<<< HEAD
       "SELECT id, author_user_id as authorId, author_name as authorName, author_company as authorCompany, title, content, test_duration_mins as testDurationMins, aptitude_questions as aptitudeQuestions, aptitude_difficulty as aptitudeDifficulty, technical_mcq as technicalMcq, coding_questions as codingQuestions, coding_difficulty as codingDifficulty, created_at as createdAt FROM alumni_posts ORDER BY created_at DESC",
-=======
-      "SELECT id, author_user_id as authorId, author_name as authorName, author_company as authorCompany, title, content, test_duration_mins as testDurationMins, aptitude_questions as aptitudeQuestions, aptitude_difficulty as aptitudeDifficulty, coding_questions as codingQuestions, coding_difficulty as codingDifficulty, created_at as createdAt FROM alumni_posts ORDER BY created_at DESC",
->>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
     );
   } catch {
     posts = await query(
@@ -102,15 +98,12 @@ export async function listPosts() {
             ? Number(meta.aptitudeQuestions)
             : null,
       aptitudeDifficulty: p.aptitudeDifficulty || meta.aptitudeDifficulty || null,
-<<<<<<< HEAD
       technicalMcq:
         p.technicalMcq != null
           ? Number(p.technicalMcq)
           : meta.technicalMcq != null
             ? Number(meta.technicalMcq)
             : null,
-=======
->>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
       codingQuestions:
         p.codingQuestions != null
           ? Number(p.codingQuestions)
@@ -140,10 +133,7 @@ export async function createPost({
   testDurationMins,
   aptitudeQuestions,
   aptitudeDifficulty,
-<<<<<<< HEAD
   technicalMcq,
-=======
->>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
   codingQuestions,
   codingDifficulty,
 }) {
@@ -151,20 +141,14 @@ export async function createPost({
     testDurationMins != null ||
     aptitudeQuestions != null ||
     aptitudeDifficulty != null ||
-<<<<<<< HEAD
     technicalMcq != null ||
-=======
->>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
     codingQuestions != null ||
     codingDifficulty != null
       ? {
           testDurationMins: testDurationMins ?? null,
           aptitudeQuestions: aptitudeQuestions ?? null,
           aptitudeDifficulty: aptitudeDifficulty ?? null,
-<<<<<<< HEAD
           technicalMcq: technicalMcq ?? null,
-=======
->>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
           codingQuestions: codingQuestions ?? null,
           codingDifficulty: codingDifficulty ?? null,
         }
@@ -173,11 +157,7 @@ export async function createPost({
   let result;
   try {
     result = await query(
-<<<<<<< HEAD
       "INSERT INTO alumni_posts (author_user_id, author_name, author_company, title, content, test_duration_mins, aptitude_questions, aptitude_difficulty, technical_mcq, coding_questions, coding_difficulty) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-=======
-      "INSERT INTO alumni_posts (author_user_id, author_name, author_company, title, content, test_duration_mins, aptitude_questions, aptitude_difficulty, coding_questions, coding_difficulty) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
->>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
       [
         authorUserId,
         authorName,
@@ -187,10 +167,7 @@ export async function createPost({
         testDurationMins ?? null,
         aptitudeQuestions ?? null,
         aptitudeDifficulty ?? null,
-<<<<<<< HEAD
         technicalMcq ?? null,
-=======
->>>>>>> af17aa1382c0eb6822643264a6bab73b6ebfa76a
         codingQuestions ?? null,
         codingDifficulty ?? null,
       ],
