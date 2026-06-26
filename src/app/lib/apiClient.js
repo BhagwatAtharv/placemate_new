@@ -4,7 +4,8 @@ export async function apiRequest(path, { method = "GET", body, token } = {}) {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const res = await fetch(path, {
+  const apiBaseUrl = import.meta.env.VITE_API_URL || "";
+  const res = await fetch(`${apiBaseUrl}${path}`, {
     method,
     headers,
     body: body ? JSON.stringify(body) : undefined,
@@ -19,3 +20,4 @@ export async function apiRequest(path, { method = "GET", body, token } = {}) {
 
   return data;
 }
+console.log("API URL:", import.meta.env.VITE_API_URL);

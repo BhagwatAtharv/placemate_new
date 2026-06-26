@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useApp } from "../context/AppContext";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
@@ -18,11 +18,42 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "./ui/alert-dialog";
-import { Clock, ChevronLeft, ChevronRight, Flag, CheckCircle2, XCircle, Code, Brain } from "lucide-react";
+import {
+  Clock,
+  ChevronLeft,
+  ChevronRight,
+  Flag,
+  CheckCircle2,
+  XCircle,
+  Code,
+  Brain,
+  Camera,
+  Mic,
+  MonitorUp,
+  ShieldAlert,
+  Eye,
+} from "lucide-react";
 
 export function TestInterface({ testId, onComplete }) {
-  const { user, tests, submitTestResult } = useApp();
+  const {
+    user,
+    tests,
+    submitTestResult,
+    startProctoringSession,
+    endProctoringSession,
+    logProctoringViolation,
+  } = useApp();
   const test = tests.find((t) => t.id === testId);
+
+  const videoRef = useRef(null);
+  const mediaStreamRef = useRef(null);
+  const screenStreamRef = useRef(null);
+  const audioContextRef = useRef(null);
+  const audioIntervalRef = useRef(null);
+  const faceIntervalRef = useRef(null);
+  const lastViolationAtRef = useRef({});
+  const proctoringSessionIdRef = useRef(null);
+  const submittingRef = useRef(false);
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -31,6 +62,17 @@ export function TestInterface({ testId, onComplete }) {
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [showResultDialog, setShowResultDialog] = useState(false);
   const [result, setResult] = useState(null);
+  const [proctoringStarted, setProctoringStarted] = useState(false);
+  const [isStartingProctoring, setIsStartingProctoring] = useState(false);
+  const [proctoringError, setProctoringError] = useState("");
+  const [proctorStatus, setProctorStatus] = useState({
+    camera: "pending",
+    microphone: "pending",
+    screen: "pending",
+    face: "pending",
+  });
+  const [proctorStats, setProctorStats] = useState({ riskScore: 0, totalWarnings: 0 });
+  const [proctorNotice, setProctorNotice] = useState("");
 
   const totalQuestions = test?.questions?.length || 0;
   const answeredCount = useMemo(() => Object.keys(answers).length, [answers]);
@@ -38,7 +80,185 @@ export function TestInterface({ testId, onComplete }) {
   const progressValue = totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0;
   const isLowTime = timeLeft < 5 * 60;
 
+  const updateProctorStatus = (key, value) => {
+    setProctorStatus((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const stopProctoringStreams = () => {
+    mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+    screenStreamRef.current?.getTracks().forEach((track) => track.stop());
+    mediaStreamRef.current = null;
+    screenStreamRef.current = null;
+
+    if (audioIntervalRef.current) {
+      clearInterval(audioIntervalRef.current);
+      audioIntervalRef.current = null;
+    }
+    if (faceIntervalRef.current) {
+      clearInterval(faceIntervalRef.current);
+      faceIntervalRef.current = null;
+    }
+    if (audioContextRef.current) {
+      audioContextRef.current.close().catch(() => {});
+      audioContextRef.current = null;
+    }
+  };
+
+  const logViolation = async (violationType, severityScore, meta = {}) => {
+    const sessionId = proctoringSessionIdRef.current;
+    if (!sessionId || submittingRef.current) return;
+
+    const now = Date.now();
+    const minGapMs = violationType === "SCREEN_SHARE_STOPPED" ? 0 : 12000;
+    if (lastViolationAtRef.current[violationType] && now - lastViolationAtRef.current[violationType] < minGapMs) {
+      return;
+    }
+    lastViolationAtRef.current[violationType] = now;
+
+    try {
+      const response = await logProctoringViolation({
+        proctoringSessionId: sessionId,
+        violationType,
+        severityScore,
+        meta,
+      });
+      if (!response) return;
+
+      setProctorStats({
+        riskScore: response.riskScore || 0,
+        totalWarnings: response.totalWarnings || 0,
+      });
+
+      if (response.warnings?.length) {
+        setProctorNotice(
+          response.shouldAutoSubmit
+            ? "Repeated proctoring violations detected. The test is being submitted."
+            : "Proctoring warning recorded. Please keep your camera, screen, and focus steady."
+        );
+      }
+
+      if (response.shouldAutoSubmit) {
+        await handleSubmit({ force: true, reason: "proctoring" });
+      }
+    } catch (err) {
+      setProctoringError(err.message || "Unable to log proctoring event.");
+    }
+  };
+
+  const startAudioMonitoring = (stream) => {
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) {
+        updateProctorStatus("microphone", "limited");
+        return;
+      }
+
+      const audioContext = new AudioContext();
+      const analyser = audioContext.createAnalyser();
+      const source = audioContext.createMediaStreamSource(stream);
+      const data = new Uint8Array(analyser.fftSize);
+      source.connect(analyser);
+      audioContextRef.current = audioContext;
+
+      audioIntervalRef.current = window.setInterval(() => {
+        analyser.getByteTimeDomainData(data);
+        const peak = data.reduce((max, value) => Math.max(max, Math.abs(value - 128)), 0);
+        if (peak > 45) {
+          logViolation("AUDIO_VIOLATION", 8, { peak });
+        }
+      }, 3000);
+    } catch {
+      updateProctorStatus("microphone", "limited");
+    }
+  };
+
+  const startFaceMonitoring = () => {
+    if (!("FaceDetector" in window)) {
+      updateProctorStatus("face", "limited");
+      return;
+    }
+
+    const detector = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 4 });
+    faceIntervalRef.current = window.setInterval(async () => {
+      const video = videoRef.current;
+      if (!video || video.readyState < 2) return;
+
+      try {
+        const faces = await detector.detect(video);
+        if (faces.length === 0) {
+          updateProctorStatus("face", "warning");
+          logViolation("NO_FACE", 10, { faceCount: 0 });
+        } else if (faces.length > 1) {
+          updateProctorStatus("face", "warning");
+          logViolation("MULTIPLE_FACES", 20, { faceCount: faces.length });
+        } else {
+          updateProctorStatus("face", "active");
+        }
+      } catch {
+        updateProctorStatus("face", "limited");
+      }
+    }, 5000);
+  };
+
+  const startProctoring = async () => {
+    if (!test || isStartingProctoring) return;
+    setIsStartingProctoring(true);
+    setProctoringError("");
+
+    try {
+      if (!navigator.mediaDevices?.getUserMedia || !navigator.mediaDevices?.getDisplayMedia) {
+        throw new Error("This browser does not support the required proctoring permissions.");
+      }
+
+      const session = await startProctoringSession(test.id);
+      if (!session?.proctoringSessionId) {
+        throw new Error("Unable to start a proctoring session.");
+      }
+      proctoringSessionIdRef.current = session?.proctoringSessionId;
+      setProctorStats({
+        riskScore: session?.riskScore || 0,
+        totalWarnings: session?.totalWarnings || 0,
+      });
+
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { width: 640, height: 480, facingMode: "user" },
+        audio: true,
+      });
+      mediaStreamRef.current = mediaStream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+      }
+      updateProctorStatus("camera", "active");
+      updateProctorStatus("microphone", "active");
+      startAudioMonitoring(mediaStream);
+      startFaceMonitoring();
+
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({
+        video: { displaySurface: "monitor" },
+        audio: false,
+      });
+      screenStreamRef.current = screenStream;
+      updateProctorStatus("screen", "active");
+      screenStream.getVideoTracks()[0]?.addEventListener("ended", () => {
+        updateProctorStatus("screen", "warning");
+        logViolation("SCREEN_SHARE_STOPPED", 35, { source: "screen-track-ended" });
+      });
+
+      setProctoringStarted(true);
+    } catch (err) {
+      stopProctoringStreams();
+      if (proctoringSessionIdRef.current) {
+        await endProctoringSession(proctoringSessionIdRef.current).catch(() => {});
+        proctoringSessionIdRef.current = null;
+      }
+      setProctoringError(err.message || "Camera, microphone, and screen permissions are required.");
+    } finally {
+      setIsStartingProctoring(false);
+    }
+  };
+
   useEffect(() => {
+    if (!proctoringStarted || showResultDialog) return;
     if (timeLeft <= 0) {
       handleSubmit();
       return;
@@ -47,12 +267,69 @@ export function TestInterface({ testId, onComplete }) {
       setTimeLeft((prev) => prev - 1);
     }, 1000);
     return () => clearInterval(timer);
-  }, [timeLeft]);
+  }, [proctoringStarted, showResultDialog, timeLeft]);
+
+  useEffect(() => {
+    if (!proctoringStarted) return;
+    if (videoRef.current && mediaStreamRef.current) {
+      videoRef.current.srcObject = mediaStreamRef.current;
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        logViolation("TAB_SWITCH", 15, { source: "visibilitychange" });
+      }
+    };
+    const handleWindowBlur = () => {
+      logViolation("TAB_SWITCH", 10, { source: "window-blur" });
+    };
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement) {
+        logViolation("LOOKING_AWAY", 8, { source: "fullscreen-exit" });
+      }
+    };
+    const handleBlockedInteraction = (event) => {
+      logViolation("LOOKING_AWAY", 6, { source: event.type });
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    window.addEventListener("blur", handleWindowBlur);
+    window.addEventListener("copy", handleBlockedInteraction);
+    window.addEventListener("paste", handleBlockedInteraction);
+
+    document.documentElement.requestFullscreen?.().catch(() => {});
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      window.removeEventListener("blur", handleWindowBlur);
+      window.removeEventListener("copy", handleBlockedInteraction);
+      window.removeEventListener("paste", handleBlockedInteraction);
+    };
+  }, [proctoringStarted]);
+
+  useEffect(() => {
+    return () => {
+      stopProctoringStreams();
+      if (proctoringSessionIdRef.current) {
+        endProctoringSession(proctoringSessionIdRef.current).catch(() => {});
+      }
+    };
+  }, []);
 
   if (!test) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p>Test not found</p>
+      </div>
+    );
+  }
+
+  if (!totalQuestions) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>This test has no questions.</p>
       </div>
     );
   }
@@ -64,6 +341,13 @@ export function TestInterface({ testId, onComplete }) {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const statusClass = (status) => {
+    if (status === "active") return "bg-emerald-50 text-emerald-700 border-emerald-200";
+    if (status === "warning") return "bg-rose-50 text-rose-700 border-rose-200";
+    if (status === "limited") return "bg-amber-50 text-amber-700 border-amber-200";
+    return "bg-slate-50 text-slate-600 border-slate-200";
   };
 
   const handleAnswer = (answer) => {
@@ -84,7 +368,10 @@ export function TestInterface({ testId, onComplete }) {
     setCurrentQuestionIndex(index);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async ({ force = false } = {}) => {
+    if (submittingRef.current && !force) return;
+    submittingRef.current = true;
+
     let score = 0;
     const answerDetails = test.questions.map((q) => {
       const userAnswer = answers[q.id] || "";
@@ -120,9 +407,64 @@ export function TestInterface({ testId, onComplete }) {
     } catch {
     }
 
+    if (proctoringSessionIdRef.current) {
+      await endProctoringSession(proctoringSessionIdRef.current).catch(() => {});
+      proctoringSessionIdRef.current = null;
+    }
+    stopProctoringStreams();
+    document.exitFullscreen?.().catch(() => {});
+
     setShowSubmitDialog(false);
     setShowResultDialog(true);
   };
+
+  if (!proctoringStarted && !showResultDialog) {
+    return (
+      <div className="app-shell flex items-center justify-center p-4">
+        <Card className="max-w-3xl w-full glass-panel border border-white/70">
+          <CardHeader>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <CardTitle className="text-2xl">Start monitored test</CardTitle>
+                <p className="mt-2 text-sm text-slate-600">
+                  {test.title} requires camera, microphone, screen sharing, tab focus, and fullscreen monitoring.
+                </p>
+              </div>
+              <ShieldAlert className="h-10 w-10 text-blue-600" />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div className="grid gap-3 sm:grid-cols-4">
+              {[
+                { key: "camera", icon: Camera, label: "Camera" },
+                { key: "microphone", icon: Mic, label: "Mic" },
+                { key: "screen", icon: MonitorUp, label: "Screen" },
+                { key: "face", icon: Eye, label: "Face" },
+              ].map(({ key, icon: Icon, label }) => (
+                <div key={key} className={`rounded-lg border px-3 py-3 ${statusClass(proctorStatus[key])}`}>
+                  <Icon className="h-4 w-4 mb-2" />
+                  <p className="text-sm font-semibold">{label}</p>
+                  <p className="text-xs capitalize">{proctorStatus[key]}</p>
+                </div>
+              ))}
+            </div>
+
+            <video ref={videoRef} className="hidden" autoPlay muted playsInline />
+
+            {proctoringError && (
+              <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                {proctoringError}
+              </div>
+            )}
+
+            <Button className="w-full sm:w-auto" onClick={startProctoring} disabled={isStartingProctoring}>
+              {isStartingProctoring ? "Starting monitoring..." : "Start Test"}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (showResultDialog && result) {
     return (
@@ -205,6 +547,35 @@ export function TestInterface({ testId, onComplete }) {
                   {progressValue}%
                 </span>
               </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <Badge variant="outline" className="rounded-full bg-white/70">
+                  Risk {proctorStats.riskScore}/100
+                </Badge>
+                <Badge variant="outline" className="rounded-full bg-white/70">
+                  Warnings {proctorStats.totalWarnings}
+                </Badge>
+                {[
+                  ["camera", Camera],
+                  ["microphone", Mic],
+                  ["screen", MonitorUp],
+                  ["face", Eye],
+                ].map(([key, Icon]) => (
+                  <span
+                    key={key}
+                    className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs capitalize ${statusClass(
+                      proctorStatus[key]
+                    )}`}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {key}: {proctorStatus[key]}
+                  </span>
+                ))}
+              </div>
+              {proctorNotice && (
+                <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                  {proctorNotice}
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-3 md:gap-4">
               <div
@@ -231,6 +602,15 @@ export function TestInterface({ testId, onComplete }) {
               <CardTitle className="text-sm">Question Navigator</CardTitle>
             </CardHeader>
             <CardContent>
+              <div className="mb-4 overflow-hidden rounded-lg border border-slate-200 bg-slate-950">
+                <video
+                  ref={videoRef}
+                  className="aspect-video w-full object-cover"
+                  autoPlay
+                  muted
+                  playsInline
+                />
+              </div>
               <ScrollArea className="max-h-[min(420px,calc(100vh-18rem))] pr-2">
                 <div className="grid grid-cols-5 gap-2">
                   {test.questions.map((q, idx) => {

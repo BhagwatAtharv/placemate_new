@@ -23,12 +23,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import {
   BookOpen,
   Calendar,
+  Activity,
   FileText,
   LayoutDashboard,
   LogOut,
   Menu,
   Plus,
+  RefreshCw,
   Search,
+  ShieldAlert,
   Sparkles,
   Trophy,
   Trash2,
@@ -56,6 +59,18 @@ function scoreTone(percent) {
   return "border-rose-200/80 bg-rose-50 text-rose-700";
 }
 
+function riskTone(score) {
+  if (score >= 70) return "border-rose-200/80 bg-rose-50 text-rose-700";
+  if (score >= 35) return "border-amber-200/80 bg-amber-50 text-amber-700";
+  return "border-emerald-200/80 bg-emerald-50 text-emerald-700";
+}
+
+function statusTone(status) {
+  if (status === "ACTIVE") return "border-blue-200/80 bg-blue-50 text-blue-700";
+  if (status === "ENDED") return "border-slate-200/80 bg-slate-50 text-slate-700";
+  return "border-slate-200/80 bg-white text-slate-500";
+}
+
 function EmptyState({ title, description }) {
   return (
     <div className="rounded-2xl border border-dashed border-slate-300 bg-white/60 p-8 text-center">
@@ -79,6 +94,8 @@ export function AdminDashboard() {
     addContest,
     allTestResults,
     allUsers,
+    proctoringReports,
+    refreshProctoringReports,
   } = useApp();
 
   const [activeView, setActiveView] = useState("tests");
@@ -88,6 +105,7 @@ export function AdminDashboard() {
   const [isMaterialDialogOpen, setIsMaterialDialogOpen] = useState(false);
   const [isContestDialogOpen, setIsContestDialogOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [isRefreshingProctoring, setIsRefreshingProctoring] = useState(false);
 
   const [testForm, setTestForm] = useState({
     title: "",
@@ -160,6 +178,34 @@ export function AdminDashboard() {
       )
     : tests;
 
+  const filteredProctoringReports = normalizedSearch
+    ? proctoringReports.filter((report) =>
+        [
+          report.name,
+          report.email,
+          report.assessmentTitle,
+          report.status,
+          report.recommendation?.label,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedSearch),
+      )
+    : proctoringReports;
+
+  const activeProctoringCount = proctoringReports.filter((report) => report.status === "ACTIVE").length;
+  const highRiskProctoringCount = proctoringReports.filter((report) => Number(report.riskScore || 0) >= 70).length;
+
+  const handleRefreshProctoring = async () => {
+    setIsRefreshingProctoring(true);
+    try {
+      await refreshProctoringReports?.();
+    } finally {
+      setIsRefreshingProctoring(false);
+    }
+  };
+
   const searchPlaceholder =
     activeView === "materials"
       ? "Search materials..."
@@ -167,6 +213,8 @@ export function AdminDashboard() {
       ? "Search contests..."
       : activeView === "results"
       ? "Search test results..."
+      : activeView === "proctoring"
+      ? "Search proctoring..."
       : "Search tests...";
 
   const navItems = [
@@ -174,6 +222,7 @@ export function AdminDashboard() {
     { id: "materials", label: "Study Materials", icon: BookOpen },
     { id: "contests", label: "Contests", icon: Trophy },
     { id: "results", label: "Student Results", icon: FileText },
+    { id: "proctoring", label: "Proctoring", icon: ShieldAlert },
   ];
 
   const addQuestion = () => {
@@ -445,11 +494,11 @@ export function AdminDashboard() {
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
                   <div className="rounded-xl bg-white/20 p-3">
-                    <Users className="h-6 w-6 text-blue-100" />
+                    <ShieldAlert className="h-6 w-6 text-blue-100" />
                   </div>
                   <div>
-                    <p className="text-sm text-blue-100">Students</p>
-                    <p className="text-3xl font-bold text-white">{students.length}</p>
+                    <p className="text-sm text-blue-100">High Risk</p>
+                    <p className="text-3xl font-bold text-white">{highRiskProctoringCount}</p>
                   </div>
                 </div>
               </CardContent>
@@ -1143,6 +1192,130 @@ export function AdminDashboard() {
                         );
                       })}
                     </Accordion>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="proctoring" className="space-y-6">
+              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                <div className="space-y-1">
+                  <h2 className="text-xl font-semibold">Proctoring Monitor</h2>
+                  <p className="text-sm text-slate-600">
+                    Review active sessions, warnings, risk levels, and candidate violation history.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <Badge variant="secondary">{proctoringReports.length} candidates</Badge>
+                    <Badge variant="outline">{activeProctoringCount} active</Badge>
+                    <Badge variant="outline" className={riskTone(80)}>
+                      {highRiskProctoringCount} high risk
+                    </Badge>
+                  </div>
+                </div>
+                <Button variant="outline" onClick={handleRefreshProctoring} disabled={isRefreshingProctoring}>
+                  <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshingProctoring ? "animate-spin" : ""}`} />
+                  Refresh
+                </Button>
+              </div>
+
+              <Card className="glass-panel border border-white/60">
+                <CardHeader>
+                  <CardTitle>Candidate Proctoring Reports</CardTitle>
+                  <CardDescription>
+                    Latest proctored session per candidate, sorted by most recent activity.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {filteredProctoringReports.length === 0 ? (
+                    <EmptyState
+                      title="No proctoring reports found"
+                      description="Reports appear after students start monitored tests."
+                    />
+                  ) : (
+                    <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white/70">
+                      <ScrollArea className="h-[560px]">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-slate-50/70">
+                              <TableHead>Candidate</TableHead>
+                              <TableHead>Assessment</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead>Risk</TableHead>
+                              <TableHead>Warnings</TableHead>
+                              <TableHead>Violations</TableHead>
+                              <TableHead>Last Activity</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {filteredProctoringReports.map((report) => (
+                              <TableRow key={`${report.candidateId}-${report.proctoringSessionId || "none"}`}>
+                                <TableCell>
+                                  <div className="flex items-center gap-3">
+                                    <Avatar className="h-9 w-9">
+                                      <AvatarFallback className="bg-slate-100 text-xs font-semibold text-slate-700">
+                                        {initials(report.name)}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <div className="min-w-0">
+                                      <p className="truncate font-semibold text-slate-900">{report.name}</p>
+                                      <p className="truncate text-xs text-slate-600">{report.email}</p>
+                                    </div>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="max-w-[16rem]">
+                                    <p className="truncate font-medium text-slate-900">{report.assessmentTitle}</p>
+                                    {report.startedAt ? (
+                                      <p className="text-xs text-slate-500">
+                                        Started {new Date(report.startedAt).toLocaleString()}
+                                      </p>
+                                    ) : (
+                                      <p className="text-xs text-slate-500">No monitored session</p>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant="outline" className={statusTone(report.status)}>
+                                    {report.status === "NOT_STARTED" ? "Not Started" : report.status}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="outline" className={riskTone(Number(report.riskScore || 0))}>
+                                      {report.riskScore}/100
+                                    </Badge>
+                                    <span className="hidden text-xs text-slate-500 xl:inline">
+                                      {report.recommendation?.label}
+                                    </span>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="inline-flex items-center gap-1 text-sm font-semibold text-slate-800">
+                                    <ShieldAlert className="h-4 w-4 text-amber-600" />
+                                    {report.totalWarnings}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="inline-flex items-center gap-1 text-sm font-semibold text-slate-800">
+                                    <Activity className="h-4 w-4 text-blue-600" />
+                                    {report.totalViolations}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-slate-600">
+                                  {report.lastViolationAt
+                                    ? new Date(report.lastViolationAt).toLocaleString()
+                                    : report.endedAt
+                                    ? new Date(report.endedAt).toLocaleString()
+                                    : report.startedAt
+                                    ? new Date(report.startedAt).toLocaleString()
+                                    : "-"}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </ScrollArea>
+                    </div>
                   )}
                 </CardContent>
               </Card>

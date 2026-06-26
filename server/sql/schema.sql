@@ -143,3 +143,75 @@ CREATE TABLE IF NOT EXISTS alumni_likes (
   CONSTRAINT fk_alumni_likes_post_id FOREIGN KEY (post_id) REFERENCES alumni_posts (id) ON DELETE CASCADE,
   CONSTRAINT fk_alumni_likes_user_id FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =========================
+-- Proctoring (AI Monitoring)
+-- =========================
+
+CREATE TABLE IF NOT EXISTS candidate (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_candidate_user_id (user_id),
+  CONSTRAINT fk_candidate_user_id FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS assessment (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  test_id BIGINT UNSIGNED NULL,
+  title VARCHAR(200) NOT NULL,
+  duration INT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_assessment_test_id (test_id),
+  CONSTRAINT fk_assessment_test_id FOREIGN KEY (test_id) REFERENCES tests (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS proctoring_session (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  candidate_id BIGINT UNSIGNED NOT NULL,
+  assessment_id BIGINT UNSIGNED NOT NULL,
+  started_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  ended_at TIMESTAMP NULL,
+  status ENUM('ACTIVE','ENDED') NOT NULL DEFAULT 'ACTIVE',
+  risk_score INT NOT NULL DEFAULT 0,
+  total_warnings INT NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  KEY idx_proctoring_session_candidate_id (candidate_id),
+  KEY idx_proctoring_session_assessment_id (assessment_id),
+  KEY idx_proctoring_session_status (status),
+  CONSTRAINT fk_proctoring_session_candidate_id FOREIGN KEY (candidate_id) REFERENCES candidate (id) ON DELETE CASCADE,
+  CONSTRAINT fk_proctoring_session_assessment_id FOREIGN KEY (assessment_id) REFERENCES assessment (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS violation (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  proctoring_session_id BIGINT UNSIGNED NOT NULL,
+  candidate_id BIGINT UNSIGNED NOT NULL,
+  violation_type VARCHAR(50) NOT NULL,
+  severity_score INT NOT NULL DEFAULT 0,
+  meta_json JSON NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_violation_session_id_created_at (proctoring_session_id, created_at),
+  KEY idx_violation_candidate_id_created_at (candidate_id, created_at),
+  CONSTRAINT fk_violation_proctoring_session_id FOREIGN KEY (proctoring_session_id) REFERENCES proctoring_session (id) ON DELETE CASCADE,
+  CONSTRAINT fk_violation_candidate_id FOREIGN KEY (candidate_id) REFERENCES candidate (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS warning (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  proctoring_session_id BIGINT UNSIGNED NOT NULL,
+  candidate_id BIGINT UNSIGNED NOT NULL,
+  warning_level ENUM('WARNING_1','WARNING_2','AUTO_SUBMIT') NOT NULL,
+  reason_violation_type VARCHAR(50) NULL,
+  severity_score INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_warning_session_id_created_at (proctoring_session_id, created_at),
+  KEY idx_warning_candidate_id_created_at (candidate_id, created_at),
+  CONSTRAINT fk_warning_proctoring_session_id FOREIGN KEY (proctoring_session_id) REFERENCES proctoring_session (id) ON DELETE CASCADE,
+  CONSTRAINT fk_warning_candidate_id FOREIGN KEY (candidate_id) REFERENCES candidate (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+

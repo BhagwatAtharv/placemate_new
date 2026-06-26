@@ -10,9 +10,11 @@ import { contestsRoutes } from "./routes/contestsRoutes.js";
 import { resultsRoutes } from "./routes/resultsRoutes.js";
 import { alumniRoutes } from "./routes/alumniRoutes.js";
 import { aiRoutes } from "./routes/aiRoutes.js";
+import { proctoringRoutes } from "./routes/proctoringRoutes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
 export function createApp() {
+
   const app = express();
 
   app.use(helmet());
@@ -31,7 +33,9 @@ export function createApp() {
   app.use("/api/results", resultsRoutes);
   app.use("/api/alumni", alumniRoutes);
   app.use("/api/ai", aiRoutes);
+  app.use("/api/proctoring", proctoringRoutes);
 
   app.use(errorHandler);
+
   return app;
 }

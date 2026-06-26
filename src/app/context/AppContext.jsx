@@ -22,6 +22,7 @@ export function AppProvider({ children }) {
   const [testResults, setTestResults] = useState([]);
   const [allTestResults, setAllTestResults] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
+  const [proctoringReports, setProctoringReports] = useState([]);
   const [studyMaterials, setStudyMaterials] = useState([]);
   const [contests, setContests] = useState([]);
   const [alumniPosts, setAlumniPosts] = useState([]);
@@ -52,6 +53,11 @@ export function AppProvider({ children }) {
     setAllUsers(data.users || []);
   };
 
+  const loadProctoringReports = async (t) => {
+    const data = await apiRequest("/api/proctoring/reports", { token: t });
+    setProctoringReports(data.reports || []);
+  };
+
   const loadAlumniPosts = async (t) => {
     const data = await apiRequest("/api/alumni/posts", { token: t });
     setAlumniPosts(data.posts || []);
@@ -64,7 +70,7 @@ export function AppProvider({ children }) {
       loadContests(t),
       loadResults(t),
       loadAlumniPosts(t),
-      ...(isAdmin ? [loadAllResults(t)] : []),
+      ...(isAdmin ? [loadAllResults(t), loadProctoringReports(t)] : []),
     ]);
   };
 
@@ -127,6 +133,7 @@ export function AppProvider({ children }) {
     setTestResults([]);
     setAllTestResults([]);
     setAllUsers([]);
+    setProctoringReports([]);
     setStudyMaterials([]);
     setContests([]);
     setAlumniPosts([]);
@@ -151,6 +158,44 @@ export function AppProvider({ children }) {
     if (user?.role === "admin") {
       await loadAllResults(token);
     }
+  };
+
+  const startProctoringSession = async (testId) => {
+    if (!token) return null;
+    return await apiRequest("/api/proctoring/session/start", {
+      method: "POST",
+      token,
+      body: { testId },
+    });
+  };
+
+  const endProctoringSession = async (proctoringSessionId) => {
+    if (!token || !proctoringSessionId) return null;
+    return await apiRequest("/api/proctoring/session/end", {
+      method: "POST",
+      token,
+      body: { proctoringSessionId },
+    });
+  };
+
+  const logProctoringViolation = async ({ proctoringSessionId, violationType, severityScore, meta }) => {
+    if (!token || !proctoringSessionId) return null;
+    return await apiRequest("/api/proctoring/violations/log", {
+      method: "POST",
+      token,
+      body: {
+        proctoringSessionId,
+        violationType,
+        severityScore,
+        meta,
+        timestamp: new Date().toISOString(),
+      },
+    });
+  };
+
+  const refreshProctoringReports = async () => {
+    if (!token || user?.role !== "admin") return;
+    await loadProctoringReports(token);
   };
 
   const addTest = async (test) => {
@@ -273,10 +318,15 @@ export function AppProvider({ children }) {
       testResults,
       allTestResults,
       allUsers,
+      proctoringReports,
       studyMaterials,
       contests,
       alumniPosts,
       submitTestResult,
+      startProctoringSession,
+      endProctoringSession,
+      logProctoringViolation,
+      refreshProctoringReports,
       addTest,
       deleteTest,
       addStudyMaterial,
